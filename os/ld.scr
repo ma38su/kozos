@@ -4,44 +4,49 @@ ENTRY("_start")
 
 MEMORY
 {
-  ramall(rwx) : org = 0xffbf20, len = 0x004000 /* 16KB */
-  ram(rwx)    : org = 0xffc020, len = 0x003f00
-  stack(rw)   : org = 0xffff00, len = 0x000000 /* end of RAM */
+      ramall(rwx) : org = 0xffbf20, len = 0x004000 /* 16KB */
+      softvec(rw) : org = 0xffbf20, len = 0x000040 /* top of RAM */
+      ram(rwx)    : org = 0xffc020, len = 0x003f00
+      stack(rw)   : org = 0xffff00, len = 0x000000 /* end of RAM */
 }
 
 SECTIONS
 {
-  .text : {
-      _text_start = . ;
-      *(.text)
-      _etext = . ;
-  } > ram
+      .softvec : {
+              _softvec = . ;
+      } > softvec
 
-  .rodata : {
-      _rodata_start = . ;
-      *(.strings)
-      *(.rodata)
-      *(.rodata.*)
-      _erodata = . ;
-  } > ram
+      .text : {
+              _text_start = . ;
+              *(.text)
+              _etext = . ;
+      } > ram
 
-  .data : {
-      _data_start = . ;
-      *(.data)
-      _edata = . ;
-  } > ram
+      .rodata : {
+              _rodata_start = . ;
+              *(.strings)
+              *(.rodata)
+              *(.rodata.*)
+              _erodata = . ;
+      } > ram
 
-  .bss : {
-      _bss_start = . ;
-      *(.bss)
-      *(COMMON)
-      _ebss = . ;
-  } > ram
+      .data : {
+              _data_start = . ;
+              *(.data)
+              _edata = . ;
+      } > ram
 
-  . = ALIGN(4);
-  _end = . ;
+      .bss : {
+              _bss_start = . ;
+              *(.bss)
+              *(COMMON)
+              _ebss = . ;
+      } > ram
 
-  .stack : {
-      _stack = . ;
-  } > stack
+      . = ALIGN(4);
+      _end = . ;
+
+      .stack : {
+              _stack = . ;
+      } > stack
 }
