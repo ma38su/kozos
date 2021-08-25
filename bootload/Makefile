@@ -62,6 +62,5 @@ monitor:
 
 load:
 	sudo chmod o+rw $(H8WRITE_SERDEV)
-	../../tools/kz_xmodem/kz_xmodem ../../04/bootload/kzload.elf $(H8WRITE_SERDEV)
-#	../../tools/kz_xmodem/kz_xmodem defines.h $(H8WRITE_SERDEV)
+	../../tools/kz_xmodem/kz_xmodem ../os/kozos $(H8WRITE_SERDEV)
 
