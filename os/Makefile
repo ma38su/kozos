@@ -16,7 +16,8 @@ STRIP   = $(BINDIR)/$(ADDNAME)strip
 H8WRITE_SERDEV = /dev/ttyUSB0
 
 OBJS  = startup.o main.o interrupt.o \
-        lib.o serial.o
+        lib.o serial.o kozos.o syscall.o \
+        test08_1.o
 
 TARGET = kozos
 

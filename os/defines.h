@@ -6,6 +6,10 @@
 
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
+typedef unsigned long uint32_t;
+
+typedef uint32_t kz_thread_id_t;
+typedef int (*kz_func_t)(int argc, char *argv[]);
+typedef void (*kz_handler_t)(void);
 
 #endif
