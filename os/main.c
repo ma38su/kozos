@@ -3,11 +3,13 @@
 #include "interrupt.h"
 #include "lib.h"
 
-int test10_1_main(int argc, char *argv[]);
+int test11_1_main(int argc, char *argv[]);
+int test11_2_main(int argc, char *argv[]);
 
 static int start_threads(int argc, char *argv[]) {
   int stacksize = 0x100;
-  kz_run(test10_1_main, "test10_1", 1, stacksize, 0, NULL);
+  kz_run(test11_1_main, "test11_1", 1, stacksize, 0, NULL);
+  kz_run(test11_2_main, "test11_2", 2, stacksize, 0, NULL);
 
   kz_chpri(15);
   INTR_ENABLE;

@@ -6,7 +6,7 @@ int test10_1_main(int argc, char *argv[]) {
   char *p1, *p2;
   int i, j;
 
-  puts("test10_1 exit.\n");
+  puts("test10_1 started.\n");
 
   for (i = 4; i <= 56; i += 4) {
     p1 = kz_kmalloc(i);
