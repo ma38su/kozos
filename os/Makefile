@@ -17,7 +17,7 @@ H8WRITE_SERDEV = /dev/ttyUSB0
 
 OBJS  = startup.o main.o interrupt.o \
         lib.o serial.o kozos.o syscall.o \
-        test08_1.o
+        test08.o test09.o
 
 TARGET = kozos
 
@@ -46,11 +46,11 @@ $(TARGET) :	$(OBJS)
 clean :
 		rm -f $(OBJS) $(TARGET) $(TARGET).elf
 
-run:
+chmod:
 	sudo chmod o+rw $(H8WRITE_SERDEV)
+
+run: chmod
 	cu -l $(H8WRITE_SERDEV) -s 9600
 
-load:
-	sudo chmod o+rw $(H8WRITE_SERDEV)
+load: $(TARGET) chmod
 	../../tools/kz_xmodem/kz_xmodem $(TARGET) $(H8WRITE_SERDEV)
-
