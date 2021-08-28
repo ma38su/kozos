@@ -2,14 +2,12 @@
 #include "kozos.h"
 #include "interrupt.h"
 #include "lib.h"
-
-int test11_1_main(int argc, char *argv[]);
-int test11_2_main(int argc, char *argv[]);
+#include "consdrv.h"
 
 static int start_threads(int argc, char *argv[]) {
-  int stacksize = 0x100;
-  kz_run(test11_1_main, "test11_1", 1, stacksize, 0, NULL);
-  kz_run(test11_2_main, "test11_2", 2, stacksize, 0, NULL);
+  int stacksize = 0x200;
+  kz_run(consdrv_main, "consdrv", 1, stacksize, 0, NULL);
+  kz_run(command_main, "command", 8, stacksize, 0, NULL);
 
   kz_chpri(15);
   INTR_ENABLE;

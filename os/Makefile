@@ -17,8 +17,7 @@ H8WRITE_SERDEV = /dev/ttyUSB0
 
 OBJS  = startup.o main.o interrupt.o \
         lib.o serial.o kozos.o syscall.o \
-        memory.o \
-        test11.o
+        memory.o consdrv.o command.o
 
 TARGET = kozos
 

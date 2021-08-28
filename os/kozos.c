@@ -311,12 +311,13 @@ static kz_thread_id_t thread_recv(kz_msgbox_id_t id, int *sizep, char **p) {
   return current->syscall.param->un.recv.ret;
 }
 
-static int setintr(softvec_type_t type, kz_handler_t handler) {
+static int thread_setintr(softvec_type_t type, kz_handler_t handler) {
   static void thread_intr(softvec_type_t type, unsigned long sp);
 
   softvec_setintr(type, thread_intr);
 
   handlers[type] = handler;
+  putcurrent();
 
   return 0;
 }
@@ -360,7 +361,12 @@ static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *p) {
     p->un.recv.ret = thread_recv(p->un.recv.id,
                                 p->un.recv.sizep, p->un.recv.pp);
     break;
+  case KZ_SYSCALL_TYPE_SETINTR:
+    p->un.setintr.ret = thread_setintr(p->un.setintr.type,
+                                      p->un.setintr.handler);
+    break;
   default:
+    puts("ERR: unknown syscall");
     break;
   }
 }
@@ -372,6 +378,14 @@ static void syscall_proc(kz_syscall_type_t type, kz_syscall_param_t *p) {
    * 処理内部でputcurrent()を行う必要がある
    */
   getcurrent();
+  call_functions(type, p);
+}
+
+static void srvcall_proc(kz_syscall_type_t type, kz_syscall_param_t *p) {
+  // thread_intrvec()内部の割込みハンドラの延長で呼ばれる限りでは、
+  // 呼出し後のthread_intrvec()でスケジューリング処理が行われ、
+  // currentは再設定される。
+  current = NULL;
   call_functions(type, p);
 }
 
@@ -404,8 +418,6 @@ static void softerr_intr(void) {
 static void thread_intr(softvec_type_t type, unsigned long sp) {
   current->context.sp = sp;
 
-  // puts(">> thread intr <<\n");
-
   if (handlers[type]) {
     handlers[type]();
   }
@@ -413,8 +425,6 @@ static void thread_intr(softvec_type_t type, unsigned long sp) {
   schedule();
 
   dispatch(&current->context);
-
-  puts("ERR: no reach point 1");
 }
 
 void kz_start(kz_func_t func, char *name, int priority, int stacksize,
@@ -429,8 +439,8 @@ void kz_start(kz_func_t func, char *name, int priority, int stacksize,
   memset(msgboxes, 0, sizeof(msgboxes));
 
   // 割込みハンドラの設定
-  setintr(SOFTVEC_TYPE_SYSCALL, syscall_intr);
-  setintr(SOFTVEC_TYPE_SOFTERR, softerr_intr);
+  thread_setintr(SOFTVEC_TYPE_SYSCALL, syscall_intr);
+  thread_setintr(SOFTVEC_TYPE_SOFTERR, softerr_intr);
 
   current = (kz_thread *)thread_run(func, name, priority, stacksize, argc, argv);
 
@@ -453,4 +463,7 @@ void kz_syscall(kz_syscall_type_t type, kz_syscall_param_t *param) {
   asm volatile ("trapa #0"); // トラップ割込み発行
 }
 
+void kz_srvcall(kz_syscall_type_t type, kz_syscall_param_t *param) {
+  srvcall_proc(type, param);
+}
 

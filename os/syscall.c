@@ -1,5 +1,6 @@
 #include "defines.h"
 #include "kozos.h"
+#include "interrupt.h"
 #include "syscall.h"
 
 kz_thread_id_t kz_run(kz_func_t func, char *name, int priority, int stacksize,
@@ -75,7 +76,7 @@ int kz_send(kz_msgbox_id_t id, int size, char *p) {
   return param.un.send.ret;
 }
 
-int kz_recv(kz_msgbox_id_t id, int *sizep, char **pp) {
+kz_thread_id_t kz_recv(kz_msgbox_id_t id, int *sizep, char **pp) {
   kz_syscall_param_t param;
   param.un.recv.id = id;
   param.un.recv.sizep = sizep;
@@ -84,3 +85,40 @@ int kz_recv(kz_msgbox_id_t id, int *sizep, char **pp) {
   return param.un.recv.ret;
 }
 
+int kz_setintr(softvec_type_t type, kz_handler_t handler) {
+  kz_syscall_param_t param;
+  param.un.setintr.type = type;
+  param.un.setintr.handler = handler;
+  kz_syscall(KZ_SYSCALL_TYPE_SETINTR, &param);
+  return param.un.setintr.ret;
+}
+
+int kx_wakeup(kz_thread_id_t id) {
+  kz_syscall_param_t param;
+  param.un.wakeup.id = id;
+  kz_syscall(KZ_SYSCALL_TYPE_WAKEUP, &param);
+  return param.un.wakeup.ret;
+}
+
+void *kx_kmalloc(int size) {
+  kz_syscall_param_t param;
+  param.un.kmalloc.size = size;
+  kz_syscall(KZ_SYSCALL_TYPE_KMALLOC, &param);
+  return param.un.kmalloc.ret;
+}
+
+int kx_kmfree(void *p) {
+  kz_syscall_param_t param;
+  param.un.kmfree.p = p;
+  kz_syscall(KZ_SYSCALL_TYPE_KMFREE, &param);
+  return param.un.kmfree.ret;
+}
+
+int kx_send(kz_msgbox_id_t id, int size, char *p) {
+  kz_syscall_param_t param;
+  param.un.send.id = id;
+  param.un.send.size = size;
+  param.un.send.p = p;
+  kz_syscall(KZ_SYSCALL_TYPE_SEND, &param);
+  return param.un.send.ret;
+}
