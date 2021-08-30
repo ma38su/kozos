@@ -61,6 +61,7 @@ static struct {
 static kz_thread *current;
 static kz_thread threads[THREAD_NUM];
 static kz_handler_t handlers[SOFTVEC_TYPE_NUM];
+static kz_syscall_func_t syscall_funcs[KZ_SYSCALL_TYPE_NUM];
 static kz_msgbox msgboxes[MSGBOX_ID_NUM];
 
 void dispatch(kz_context *context);
@@ -322,52 +323,65 @@ static int thread_setintr(softvec_type_t type, kz_handler_t handler) {
   return 0;
 }
 
+void call_run(kz_syscall_param_t *p) {
+  p->un.run.ret = thread_run(p->un.run.func, p->un.run.name,
+                             p->un.run.priority, p->un.run.stacksize,
+                             p->un.run.argc, p->un.run.argv);
+}
+
+void call_exit(kz_syscall_param_t *p) {
+  thread_exit();
+}
+
+void call_wait(kz_syscall_param_t *p) {
+  p->un.wait.ret = thread_wait();
+}
+
+void call_sleep(kz_syscall_param_t *p) {
+  p->un.sleep.ret = thread_sleep();
+}
+
+void call_wakeup(kz_syscall_param_t *p) {
+  p->un.wakeup.ret = thread_wakeup(p->un.wakeup.id);
+}
+
+void call_getid(kz_syscall_param_t *p) {
+  p->un.getid.ret = thread_getid();
+}
+
+void call_chpri(kz_syscall_param_t *p) {
+  p->un.chpri.ret = thread_chpri(p->un.chpri.priority);
+}
+
+void call_kmalloc(kz_syscall_param_t *p) {
+  p->un.kmalloc.ret = thread_kmalloc(p->un.kmalloc.size);
+}
+
+void call_kmfree(kz_syscall_param_t *p) {
+  p->un.kmfree.ret = thread_kmfree(p->un.kmfree.p);
+}
+
+void call_send(kz_syscall_param_t *p) {
+  p->un.send.ret = thread_send(p->un.send.id,
+                              p->un.send.size, p->un.send.p);
+}
+
+void call_recv(kz_syscall_param_t *p) {
+  p->un.recv.ret = thread_recv(p->un.recv.id,
+                              p->un.recv.sizep, p->un.recv.pp);
+}
+
+void call_setintr(kz_syscall_param_t *p) {
+  p->un.setintr.ret = thread_setintr(p->un.setintr.type,
+                                    p->un.setintr.handler);
+}
+
 static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *p) {
-  switch (type) {
-  case KZ_SYSCALL_TYPE_RUN:
-    p->un.run.ret = thread_run(p->un.run.func, p->un.run.name,
-                               p->un.run.priority, p->un.run.stacksize,
-                               p->un.run.argc, p->un.run.argv);
-    break;
-  case KZ_SYSCALL_TYPE_EXIT:
-    thread_exit();
-    break;
-  case KZ_SYSCALL_TYPE_WAIT:
-    p->un.wait.ret = thread_wait();
-    break;
-  case KZ_SYSCALL_TYPE_SLEEP:
-    p->un.sleep.ret = thread_sleep();
-    break;
-  case KZ_SYSCALL_TYPE_WAKEUP:
-    p->un.wakeup.ret = thread_wakeup(p->un.wakeup.id);
-    break;
-  case KZ_SYSCALL_TYPE_GETID:
-    p->un.getid.ret = thread_getid();
-    break;
-  case KZ_SYSCALL_TYPE_CHPRI:
-    p->un.chpri.ret = thread_chpri(p->un.chpri.priority);
-    break;
-  case KZ_SYSCALL_TYPE_KMALLOC:
-    p->un.kmalloc.ret = thread_kmalloc(p->un.kmalloc.size);
-    break;
-  case KZ_SYSCALL_TYPE_KMFREE:
-    p->un.kmfree.ret = thread_kmfree(p->un.kmfree.p);
-    break;
-  case KZ_SYSCALL_TYPE_SEND:
-    p->un.send.ret = thread_send(p->un.send.id,
-                                p->un.send.size, p->un.send.p);
-    break;
-  case KZ_SYSCALL_TYPE_RECV:
-    p->un.recv.ret = thread_recv(p->un.recv.id,
-                                p->un.recv.sizep, p->un.recv.pp);
-    break;
-  case KZ_SYSCALL_TYPE_SETINTR:
-    p->un.setintr.ret = thread_setintr(p->un.setintr.type,
-                                      p->un.setintr.handler);
-    break;
-  default:
+  kz_syscall_func_t f = syscall_funcs[type];
+  if (f) {
+    f(p);
+  } else {
     puts("ERR: unknown syscall");
-    break;
   }
 }
 
@@ -436,7 +450,22 @@ void kz_start(kz_func_t func, char *name, int priority, int stacksize,
   memset(readyque, 0, sizeof(readyque));
   memset(threads, 0, sizeof(threads));
   memset(handlers, 0, sizeof(handlers));
+  memset(syscall_funcs, 0, sizeof(syscall_funcs));
   memset(msgboxes, 0, sizeof(msgboxes));
+
+  // システムコールの設定
+  syscall_funcs[KZ_SYSCALL_TYPE_RUN] = call_run;
+  syscall_funcs[KZ_SYSCALL_TYPE_EXIT] = call_exit;
+  syscall_funcs[KZ_SYSCALL_TYPE_WAIT] = call_wait;
+  syscall_funcs[KZ_SYSCALL_TYPE_SLEEP] = call_sleep;
+  syscall_funcs[KZ_SYSCALL_TYPE_WAKEUP] = call_wakeup;
+  syscall_funcs[KZ_SYSCALL_TYPE_GETID] = call_getid;
+  syscall_funcs[KZ_SYSCALL_TYPE_CHPRI] = call_chpri;
+  syscall_funcs[KZ_SYSCALL_TYPE_KMALLOC] = call_kmalloc;
+  syscall_funcs[KZ_SYSCALL_TYPE_KMFREE] = call_kmfree;
+  syscall_funcs[KZ_SYSCALL_TYPE_SEND] = call_send;
+  syscall_funcs[KZ_SYSCALL_TYPE_RECV] = call_recv;
+  syscall_funcs[KZ_SYSCALL_TYPE_SETINTR] = call_setintr;
 
   // 割込みハンドラの設定
   thread_setintr(SOFTVEC_TYPE_SYSCALL, syscall_intr);

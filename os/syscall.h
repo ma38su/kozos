@@ -18,6 +18,7 @@ typedef enum {
   KZ_SYSCALL_TYPE_SEND,
   KZ_SYSCALL_TYPE_RECV,
   KZ_SYSCALL_TYPE_SETINTR,
+  KZ_SYSCALL_TYPE_NUM,
 } kz_syscall_type_t;
 
 typedef struct {
@@ -91,5 +92,7 @@ typedef struct {
 
   } un;
 } kz_syscall_param_t;
+
+typedef void (*kz_syscall_func_t)(kz_syscall_param_t *p);
 
 #endif
